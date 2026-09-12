@@ -1,0 +1,232 @@
+/* ==========================================================================
+   SkillTracker — Government-Grade Enterprise Design System & CSS Tokens
+   Light-First • Institutional • High Information Density • Accessible
+   ========================================================================== */
+
+:root {
+  /* Color Palette — Core Warm Ivory & Crisp White Surfaces */
+  --bg-main: #F7F6F2;               /* Warm off-white / ivory primary background */
+  --bg-surface: #FFFFFF;            /* Main crisp card & panel surface */
+  --bg-surface-secondary: #F2F1EB;  /* Warm secondary surface */
+  --bg-surface-elevated: #FFFFFF;   /* Elevated surface */
+  --bg-surface-hover: #F5F4EE;      /* Subtle surface hover state */
+  --bg-surface-active: #EDECE4;     /* Surface active state */
+  --bg-warm-beige: #E8E1D5;         /* Warm institutional beige accent */
+  --bg-input: #FFFFFF;              /* Clean form input background */
+
+  /* Brand Colors — Institutional Forest Green & Sage */
+  --primary: #166534;               /* Deep professional forest green */
+  --primary-hover: #14532D;         /* Darker green hover */
+  --primary-dark: #0F3F21;          /* Dark institutional green */
+  --primary-light: #2F855A;         /* Secondary green */
+  --primary-sage: #86A98D;          /* Sage accent */
+  --primary-sage-light: #DCEBDD;    /* Light sage background */
+  --primary-sage-subtle: #EAF4EC;   /* Subtle sage for active navigation / pills */
+  --primary-glow: rgba(22, 101, 52, 0.12); /* Subtle restrained focus/glow */
+  --primary-soft: #EAF4EC;
+
+  /* Accent Tones */
+  --accent-blue: #2563EB;           /* Institutional information blue */
+  --accent-amber: #B7791F;          /* Restrained amber/gold */
+  --accent-sage: #86A98D;
+  --accent-beige: #E8E1D5;
+
+  /* Semantic Status Colors */
+  --success: #15803D;
+  --success-bg: #DCEBDD;
+  --success-border: #B7DEBC;
+
+  --danger: #C2413B;
+  --danger-bg: #FEE2E2;
+  --danger-border: #FCA5A5;
+
+  --warning: #B7791F;
+  --warning-bg: #FEF3C7;
+  --warning-border: #FDE68A;
+
+  --info: #2563EB;
+  --info-bg: #EFF6FF;
+  --info-border: #BFDBFE;
+
+  /* Typography Colors */
+  --text-main: #1F2933;             /* Deep charcoal high-contrast text */
+  --text-muted: #667085;            /* Neutral slate secondary text */
+  --text-subtle: #98A2B3;           /* Muted metadata text */
+  --text-inverse: #FFFFFF;          /* Pure white text for dark buttons/badges */
+
+  /* Borders & Dividers */
+  --border-subtle: #E4E1DA;         /* Crisp light institutional border */
+  --border-light: #D3CEC3;          /* Slightly emphasized border */
+  --border-focus: #166534;          /* Deep forest green focus ring */
+
+  /* Shadows — Subdued, Soft, Natural (No Neon Glow) */
+  --shadow-xs: 0 1px 2px rgba(31, 41, 51, 0.04);
+  --shadow-sm: 0 1px 3px rgba(31, 41, 51, 0.05), 0 1px 2px rgba(31, 41, 51, 0.03);
+  --shadow-md: 0 4px 20px rgba(31, 41, 51, 0.06), 0 2px 6px rgba(31, 41, 51, 0.04);
+  --shadow-lg: 0 10px 30px rgba(31, 41, 51, 0.08), 0 4px 10px rgba(31, 41, 51, 0.04);
+  --shadow-card: 0 2px 12px rgba(31, 41, 51, 0.04);
+  --shadow-hover: 0 8px 24px rgba(31, 41, 51, 0.08);
+
+  /* Border Radius */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 10px;                /* Buttons and inputs */
+  --radius-lg: 16px;                /* Standard cards */
+  --radius-xl: 20px;                /* Modals & large containers */
+  --radius-full: 9999px;
+
+  /* Layout Constants */
+  --sidebar-width: 250px;
+  --navbar-height: 68px;
+  --transition-fast: 0.15s ease;
+  /* Refined Institutional Gradient Tokens */
+  --gradient-primary: linear-gradient(135deg, #166534 0%, #1f8244 100%);
+  --gradient-primary-hover: linear-gradient(135deg, #14532D 0%, #166534 100%);
+  --gradient-sage: linear-gradient(135deg, #DCEBDD 0%, #EAF4EC 100%);
+  --gradient-surface: linear-gradient(180deg, #FFFFFF 0%, #FAF9F5 100%);
+  --gradient-card-header: linear-gradient(90deg, #166534 0%, #2F855A 50%, #86A98D 100%);
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(228, 225, 218, 0.75);
+  --glass-shadow: 0 12px 36px -4px rgba(22, 101, 52, 0.06), 0 2px 6px -1px rgba(0, 0, 0, 0.03);
+}
+
+/* Reset & Base Setup */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background-color: var(--bg-main);
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(220, 235, 221, 0.45) 0px, transparent 42%),
+    radial-gradient(at 100% 8%, rgba(232, 225, 213, 0.4) 0px, transparent 46%),
+    radial-gradient(at 50% 100%, rgba(220, 235, 221, 0.35) 0px, transparent 52%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  color: var(--text-main);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+a {
+  color: var(--primary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--primary-hover);
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* Accessible Focus Ring */
+*:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Scrollbar Customization */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-main);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #D8D4CA;
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #B8B3A8;
+}
+
+/* Typography Hierarchy Utilities */
+.page-title {
+  font-size: 1.85rem;
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+}
+
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: -0.015em;
+}
+
+.card-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-main);
+  letter-spacing: -0.01em;
+}
+
+.kpi-number {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+/* Utility Helper Classes */
+.text-main { color: var(--text-main); }
+.text-muted { color: var(--text-muted); }
+.text-subtle { color: var(--text-subtle); }
+.text-primary { color: var(--primary); }
+.text-primary-link { color: var(--primary); font-weight: 500; }
+.text-xs { font-size: 0.75rem; }
+.text-sm { font-size: 0.875rem; }
+.text-md { font-size: 1rem; }
+.text-lg { font-size: 1.125rem; }
+.font-medium { font-weight: 500; }
+.font-semibold { font-weight: 600; }
+.font-bold { font-weight: 700; }
+
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

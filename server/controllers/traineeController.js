@@ -1,13 +1,23 @@
+const crypto = require('crypto');
 const User = require('../models/User');
 const Trainee = require('../models/Trainee');
 const Provider = require('../models/Provider');
-const { validateAadhaar, maskAadhaar, hashAadhaar } = require('../utils/aadhaarValidator');
 
 const getProviderRecord = async (userId) => Provider.findOne({ userId });
 
 /**
+ * Helper to generate unique internal Trainee ID (e.g. TRN-2024-10523)
+ */
+const generateInternalTraineeId = async () => {
+  const year = new Date().getFullYear();
+  const count = await Trainee.countDocuments();
+  const serial = String(count + 10001).padStart(5, '0');
+  return `TRN-${year}-${serial}`;
+};
+
+/**
  * POST /api/trainees
- * Provider adds (creates + enrolls) a new trainee into their provider with Aadhaar validation
+ * Register a new trainee with tokenized identity, demographics, and duplicate protection
  */
 const createTrainee = async (req, res) => {
   try {
@@ -17,55 +27,54 @@ const createTrainee = async (req, res) => {
       password,
       email,
       phone,
+      alternatePhone,
+      alternateEmail,
+      preferredChannel,
       dateOfBirth,
       gender,
-      location,
+      socialCategory,
+      residenceType,
       educationLevel,
-      governmentIdType,
-      aadhaarNumber,
+      district,
+      state,
+      currentLocation,
+      idType,
+      tokenizedIdRef,
     } = req.body;
 
     if (!name || !username || !password) {
-      return res.status(400).json({ success: false, message: 'name, username, and password are required.' });
+      return res.status(400).json({ success: false, message: 'Name, username, and password are required.' });
     }
 
-    const provider = await getProviderRecord(req.user._id);
-    if (!provider) {
-      return res.status(404).json({ success: false, message: 'Provider profile not found.' });
+    let providerId = req.body.providerId;
+    if (req.user.role === 'PROVIDER') {
+      const provider = await getProviderRecord(req.user._id);
+      if (!provider) return res.status(404).json({ success: false, message: 'Provider profile not found.' });
+      providerId = provider._id;
     }
 
-    // Check username not taken
-    const existing = await User.findOne({ username: username.toLowerCase().trim() });
-    if (existing) {
-      return res.status(400).json({ success: false, message: 'Username already in use.' });
+    // Check username uniqueness
+    const existingUser = await User.findOne({ username: username.toLowerCase().trim() });
+    if (existingUser) {
+      return res.status(400).json({ success: false, message: 'Username is already taken.' });
     }
 
-    // Aadhaar Validation & Masking
-    let maskedAadhaar = '';
-    let aadhaarHash = '';
-    const idType = governmentIdType || 'AADHAAR';
-
-    if (idType === 'AADHAAR' && aadhaarNumber) {
-      const cleanAadhaar = String(aadhaarNumber).replace(/[\s-]/g, '');
-      const validation = validateAadhaar(cleanAadhaar);
-      if (!validation.valid) {
-        return res.status(400).json({ success: false, message: validation.message });
-      }
-
-      maskedAadhaar = maskAadhaar(cleanAadhaar);
-      aadhaarHash = hashAadhaar(cleanAadhaar);
-
-      // Check if Aadhaar is already registered
-      const duplicate = await Trainee.findOne({ aadhaarHash });
-      if (duplicate) {
+    // Duplicate Trainee Detection: check by tokenized ID or phone + name
+    let idHash = '';
+    if (tokenizedIdRef) {
+      idHash = crypto.createHash('sha256').update(tokenizedIdRef.trim()).digest('hex');
+      const existingTrainee = await Trainee.findOne({ idHash });
+      if (existingTrainee) {
         return res.status(400).json({
           success: false,
-          message: `This Government ID / Aadhaar is already registered under ID (${maskedAadhaar}).`,
+          message: `Possible duplicate trainee found: identity reference is already registered under ID ${existingTrainee.internalTraineeId}.`,
         });
       }
     }
 
-    // Create User auth record
+    const internalTraineeId = await generateInternalTraineeId();
+
+    // Create auth user
     const user = await User.create({
       name,
       username: username.toLowerCase().trim(),
@@ -75,18 +84,29 @@ const createTrainee = async (req, res) => {
       status: 'ACTIVE',
     });
 
-    // Create Trainee profile
+    // Create trainee profile
     const trainee = await Trainee.create({
+      internalTraineeId,
       userId: user._id,
-      providerId: provider._id,
+      providerId,
       phone: phone || '',
+      alternatePhone: alternatePhone || '',
+      email: email || '',
+      alternateEmail: alternateEmail || '',
+      preferredChannel: preferredChannel || 'WHATSAPP',
+      contactStatus: 'VERIFIED',
       dateOfBirth: dateOfBirth || null,
       gender: gender || '',
-      location: location || '',
+      socialCategory: socialCategory || 'GENERAL',
+      residenceType: residenceType || 'URBAN',
       educationLevel: educationLevel || 'GRADUATE',
-      governmentIdType: idType,
-      maskedAadhaar,
-      aadhaarHash,
+      district: district || 'Vijayawada / Krishna',
+      state: state || 'Andhra Pradesh',
+      currentLocation: currentLocation || district || '',
+      idType: idType || 'AADHAAR_TOKEN',
+      tokenizedIdRef: tokenizedIdRef || '',
+      idHash,
+      idVerificationStatus: tokenizedIdRef ? 'VERIFIED_TOKEN' : 'SELF_DECLARED',
       trackingConsent: 'GRANTED',
       currentFollowUpStatus: 'NOT_DUE',
       status: 'ACTIVE',
@@ -94,25 +114,8 @@ const createTrainee = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: '✓ Trainee registered successfully.',
-      data: {
-        trainee: {
-          _id: trainee._id,
-          phone: trainee.phone,
-          location: trainee.location,
-          maskedAadhaar: trainee.maskedAadhaar,
-          governmentIdType: trainee.governmentIdType,
-          trackingConsent: trainee.trackingConsent,
-          status: trainee.status,
-        },
-        user: {
-          id: user._id,
-          name: user.name,
-          username: user.username,
-          email: user.email,
-          role: user.role,
-        },
-      },
+      message: '✓ Trainee registered successfully with permanent internal ID.',
+      data: trainee,
     });
   } catch (error) {
     console.error('createTrainee error:', error);
@@ -122,6 +125,7 @@ const createTrainee = async (req, res) => {
 
 /**
  * GET /api/trainees
+ * List trainees with pagination, search, and demographic filters
  */
 const getTrainees = async (req, res) => {
   try {
@@ -131,17 +135,45 @@ const getTrainees = async (req, res) => {
       const provider = await getProviderRecord(req.user._id);
       if (!provider) return res.json({ success: true, count: 0, data: [] });
       filter.providerId = provider._id;
-    } else if (req.user.role === 'TRAINEE') {
-      filter.userId = req.user._id;
+    } else if (req.user.role === 'ADMIN') {
+      if (req.query.providerId && req.query.providerId !== 'ALL') {
+        filter.providerId = req.query.providerId;
+      }
     }
 
-    const trainees = await Trainee.find(filter)
-      .populate('userId', 'name username email status createdAt')
-      .populate('providerId', 'organizationName contactPerson')
-      .select('-aadhaarHash') // Never leak cryptographic hash
-      .sort({ createdAt: -1 });
+    if (req.query.district && req.query.district !== 'ALL') {
+      filter.district = req.query.district;
+    }
+    if (req.query.socialCategory && req.query.socialCategory !== 'ALL') {
+      filter.socialCategory = req.query.socialCategory;
+    }
+    if (req.query.trackingConsent && req.query.trackingConsent !== 'ALL') {
+      filter.trackingConsent = req.query.trackingConsent;
+    }
 
-    res.json({ success: true, count: trainees.length, data: trainees });
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 50;
+    const skip = (page - 1) * limit;
+
+    const [trainees, totalCount] = await Promise.all([
+      Trainee.find(filter)
+        .populate('userId', 'name email username status')
+        .populate('providerId', 'organizationName contactPerson')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Trainee.countDocuments(filter),
+    ]);
+
+    res.json({
+      success: true,
+      count: trainees.length,
+      totalCount,
+      page,
+      totalPages: Math.ceil(totalCount / limit),
+      data: trainees,
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -150,27 +182,13 @@ const getTrainees = async (req, res) => {
 /**
  * GET /api/trainees/:id
  */
-const getTrainee = async (req, res) => {
+const getTraineeById = async (req, res) => {
   try {
     const trainee = await Trainee.findById(req.params.id)
-      .populate('userId', 'name username email status createdAt')
-      .populate('providerId', 'organizationName contactPerson phone address')
-      .select('-aadhaarHash');
+      .populate('userId', 'name email username status')
+      .populate('providerId', 'organizationName contactPerson phone email');
 
-    if (!trainee) {
-      return res.status(404).json({ success: false, message: 'Trainee not found.' });
-    }
-
-    if (req.user.role === 'TRAINEE' && trainee.userId._id.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ success: false, message: 'Access denied.' });
-    }
-
-    if (req.user.role === 'PROVIDER') {
-      const provider = await getProviderRecord(req.user._id);
-      if (!provider || trainee.providerId._id.toString() !== provider._id.toString()) {
-        return res.status(403).json({ success: false, message: 'Access denied.' });
-      }
-    }
+    if (!trainee) return res.status(404).json({ success: false, message: 'Trainee not found.' });
 
     res.json({ success: true, data: trainee });
   } catch (error) {
@@ -180,70 +198,45 @@ const getTrainee = async (req, res) => {
 
 /**
  * PUT /api/trainees/:id
+ * Update contact details with change history (prevents duplicate creation on phone change)
  */
 const updateTrainee = async (req, res) => {
   try {
     const trainee = await Trainee.findById(req.params.id);
-    if (!trainee) {
-      return res.status(404).json({ success: false, message: 'Trainee not found.' });
+    if (!trainee) return res.status(404).json({ success: false, message: 'Trainee not found.' });
+
+    const { phone, alternatePhone, email, alternateEmail, preferredChannel, district, currentLocation } = req.body;
+
+    if (phone && phone !== trainee.phone) {
+      trainee.phoneChangeHistory.push({
+        oldPhone: trainee.phone,
+        newPhone: phone,
+        changedAt: new Date(),
+        reason: req.body.phoneChangeReason || 'Trainee contact update',
+      });
+      trainee.phone = phone;
+      trainee.contactStatus = 'UPDATED';
     }
 
-    if (req.user.role === 'PROVIDER') {
-      const provider = await getProviderRecord(req.user._id);
-      if (!provider || trainee.providerId.toString() !== provider._id.toString()) {
-        return res.status(403).json({ success: false, message: 'Access denied.' });
-      }
-    }
-
-    const {
-      phone,
-      dateOfBirth,
-      gender,
-      location,
-      status,
-      name,
-      email,
-      educationLevel,
-      governmentIdType,
-      aadhaarNumber,
-    } = req.body;
-
-    if (phone !== undefined) trainee.phone = phone;
-    if (dateOfBirth !== undefined) trainee.dateOfBirth = dateOfBirth;
-    if (gender !== undefined) trainee.gender = gender;
-    if (location !== undefined) trainee.location = location;
-    if (educationLevel !== undefined) trainee.educationLevel = educationLevel;
-    if (status !== undefined) trainee.status = status;
-    if (governmentIdType !== undefined) trainee.governmentIdType = governmentIdType;
-
-    if (aadhaarNumber) {
-      const cleanAadhaar = String(aadhaarNumber).replace(/[\s-]/g, '');
-      const validation = validateAadhaar(cleanAadhaar);
-      if (!validation.valid) {
-        return res.status(400).json({ success: false, message: validation.message });
-      }
-      trainee.maskedAadhaar = maskAadhaar(cleanAadhaar);
-      trainee.aadhaarHash = hashAadhaar(cleanAadhaar);
-    }
+    if (alternatePhone) trainee.alternatePhone = alternatePhone;
+    if (email) trainee.email = email;
+    if (alternateEmail) trainee.alternateEmail = alternateEmail;
+    if (preferredChannel) trainee.preferredChannel = preferredChannel;
+    if (district) trainee.district = district;
+    if (currentLocation) trainee.currentLocation = currentLocation;
 
     await trainee.save();
 
-    if (name !== undefined || email !== undefined) {
-      const userUpdate = {};
-      if (name) userUpdate.name = name;
-      if (email) userUpdate.email = email;
-      await User.findByIdAndUpdate(trainee.userId, userUpdate);
-    }
-
-    const updated = await Trainee.findById(trainee._id)
-      .populate('userId', 'name username email status')
-      .populate('providerId', 'organizationName')
-      .select('-aadhaarHash');
-
-    res.json({ success: true, message: '✓ Trainee updated successfully.', data: updated });
+    res.json({ success: true, message: 'Trainee details updated successfully.', data: trainee });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-module.exports = { createTrainee, getTrainees, getTrainee, updateTrainee };
+module.exports = {
+  createTrainee,
+  getTrainees,
+  getTraineeById,
+  getTrainee: getTraineeById,
+  updateTrainee,
+};

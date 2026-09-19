@@ -21,6 +21,8 @@ const {
   updateFollowUpSettings,
   submitFollowUpResponse,
   markUnreachable,
+  getAssistedFollowUpQueue,
+  logOperatorCall,
 } = require('../controllers/followUpController');
 const { protect } = require('../middleware/auth');
 const { authorize } = require('../middleware/authorize');
@@ -36,6 +38,10 @@ router.get('/my', protect, authorize('TRAINEE'), getMyFollowUps);
 router.post('/opt-out', protect, authorize('TRAINEE'), optOutTrainee);
 router.post('/resume', protect, authorize('TRAINEE'), resumeTrackingTrainee);
 router.post('/:id/submit', protect, authorize('TRAINEE'), submitFollowUpResponse);
+
+// --- Assisted Follow-Up Queue (Operators / Providers) ---
+router.get('/assisted-queue', protect, authorize('ADMIN', 'PROVIDER'), getAssistedFollowUpQueue);
+router.post('/:id/log-call', protect, authorize('ADMIN', 'PROVIDER'), logOperatorCall);
 
 // --- Admin Only Configuration & Government Queue Endpoints ---
 router.get('/settings', protect, authorize('ADMIN'), getFollowUpSettings);

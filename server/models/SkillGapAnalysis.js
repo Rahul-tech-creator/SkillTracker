@@ -9,7 +9,7 @@ const skillResultSchema = new mongoose.Schema(
     percentage: { type: Number, default: 0 },
     classification: {
       type: String,
-      enum: ['STRONG', 'DEVELOPING', 'WEAK', 'CRITICAL_GAP'],
+      enum: ['STRONG', 'DEVELOPING', 'WEAK', 'AT_RISK', 'CRITICAL_GAP'],
       default: 'DEVELOPING',
     },
     gapScore: { type: Number, default: 0 }, // 100 - percentage
@@ -102,17 +102,23 @@ const skillGapSchema = new mongoose.Schema(
       ],
       careerReadiness: {
         rating: { type: String, default: 'DEVELOPING' },
-        readinessScore: { type: Number, default: 0 },
+        readinessScore: { type: Number, default: null },
         justification: { type: String, default: '' },
         suggestedRoles: [{ type: String }],
         targetCertifications: [{ type: String }],
         salaryGrowthPotential: { type: String, default: '' },
       },
       cognitiveBreakdown: {
-        recallScore: { type: Number, default: 0 },
-        applicationScore: { type: Number, default: 0 },
-        analysisScore: { type: Number, default: 0 },
-        synthesisScore: { type: Number, default: 0 },
+        recallScore: { type: Number, default: null },
+        applicationScore: { type: Number, default: null },
+        analysisScore: { type: Number, default: null },
+        synthesisScore: { type: Number, default: null },
+        evidenceStatus: {
+          type: String,
+          enum: ['SUFFICIENT', 'INSUFFICIENT_EVIDENCE'],
+          default: 'SUFFICIENT',
+        },
+        notes: { type: String, default: '' },
       },
       recommendedSkills: [{ type: String }],
       providerActions: [{ type: String }],

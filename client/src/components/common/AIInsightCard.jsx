@@ -149,7 +149,7 @@ export const AIInsightCard = ({
             <span
               className={data.careerReadiness.rating === 'JOB_READY' ? 'badge badge-success' : 'badge badge-warning'}
             >
-              {data.careerReadiness.rating} ({data.careerReadiness.readinessScore || 85}%)
+              {data.careerReadiness.rating} {data.careerReadiness.readinessScore != null ? `(${data.careerReadiness.readinessScore}%)` : ''}
             </span>
           </div>
 
@@ -189,24 +189,34 @@ export const AIInsightCard = ({
             <h4 style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', margin: 0, fontWeight: '800' }}>
               Cognitive Proficiency Dimensions (Bloom's Taxonomy)
             </h4>
-            <span style={{ fontSize: '0.65rem', color: 'var(--text-subtle)', fontWeight: '600' }}>ASSESSMENT EVIDENCE</span>
+            <span style={{ fontSize: '0.65rem', color: 'var(--text-subtle)', fontWeight: '600' }}>
+              {data.cognitiveBreakdown.evidenceStatus === 'INSUFFICIENT_EVIDENCE' ? 'INSUFFICIENT EVIDENCE' : 'ASSESSMENT EVIDENCE'}
+            </span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '8px' }}>
             <div style={{ backgroundColor: '#FAFAF7', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
               <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: '600' }}>Factual Recall</div>
-              <div style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--primary)' }}>{data.cognitiveBreakdown.recallScore || 90}%</div>
+              <div style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--primary)' }}>
+                {data.cognitiveBreakdown.recallScore != null ? `${data.cognitiveBreakdown.recallScore}%` : <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Insufficient Evidence</span>}
+              </div>
             </div>
             <div style={{ backgroundColor: '#FAFAF7', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
               <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: '600' }}>Application</div>
-              <div style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--primary)' }}>{data.cognitiveBreakdown.applicationScore || 80}%</div>
+              <div style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--primary)' }}>
+                {data.cognitiveBreakdown.applicationScore != null ? `${data.cognitiveBreakdown.applicationScore}%` : <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Insufficient Evidence</span>}
+              </div>
             </div>
             <div style={{ backgroundColor: '#FAFAF7', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
               <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: '600' }}>Analysis</div>
-              <div style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--warning)' }}>{data.cognitiveBreakdown.analysisScore || 70}%</div>
+              <div style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--warning)' }}>
+                {data.cognitiveBreakdown.analysisScore != null ? `${data.cognitiveBreakdown.analysisScore}%` : <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Insufficient Evidence</span>}
+              </div>
             </div>
             <div style={{ backgroundColor: '#FAFAF7', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
               <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: '600' }}>Synthesis</div>
-              <div style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--info)' }}>{data.cognitiveBreakdown.synthesisScore || 65}%</div>
+              <div style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--info)' }}>
+                {data.cognitiveBreakdown.synthesisScore != null ? `${data.cognitiveBreakdown.synthesisScore}%` : <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Insufficient Evidence</span>}
+              </div>
             </div>
           </div>
         </div>

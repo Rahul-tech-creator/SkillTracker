@@ -6,6 +6,7 @@ import { Button } from '../../components/common/Button';
 import { StatCard } from '../../components/common/StatCard';
 import { Toast } from '../../components/common/Toast';
 import { Modal } from '../../components/common/Modal';
+import { OutcomeVerificationModal } from '../../components/outcomes/OutcomeVerificationModal';
 import {
   IconTrendingUp,
   IconBriefcase,
@@ -15,8 +16,11 @@ import {
   IconEye,
   IconUsers,
   IconAward,
+  IconShield,
+  IconAlertCircle,
+  IconCheckCircle,
 } from '../../components/common/Icons';
-import { formatDate } from '../../utils/helpers';
+import { formatDate, formatCurrency } from '../../utils/helpers';
 
 export const AdminOutcomes = () => {
   const [outcomes, setOutcomes] = useState([]);
@@ -36,7 +40,9 @@ export const AdminOutcomes = () => {
   const [situationFilter, setSituationFilter] = useState('ALL');
   const [typeFilter, setTypeFilter] = useState('ALL');
   const [providerFilter, setProviderFilter] = useState('ALL');
+  const [discrepancyOnly, setDiscrepancyOnly] = useState(false);
   const [selectedOutcome, setSelectedOutcome] = useState(null);
+  const [verificationOutcome, setVerificationOutcome] = useState(null);
   const [toast, setToast] = useState(null);
 
   const fetchData = async () => {
@@ -74,32 +80,42 @@ export const AdminOutcomes = () => {
 
   const filteredOutcomes = useMemo(() => {
     return outcomes.filter((o) => {
-      const matchesSituation = situationFilter === 'ALL' || o.situation === situationFilter;
-      const matchesType = typeFilter === 'ALL' || o.followUpType === typeFilter;
+      const situationVal = o.status || o.situation;
+      const milestoneVal = o.milestone || o.followUpType;
+      const matchesSituation = situationFilter === 'ALL' || situationVal === situationFilter;
+      const matchesType = typeFilter === 'ALL' || milestoneVal === typeFilter;
       const matchesProvider =
-        providerFilter === 'ALL' || o.providerId?._id === providerFilter;
+        providerFilter === 'ALL' ||
+        o.provider?._id === providerFilter ||
+        o.providerId?._id === providerFilter;
+      const matchesDiscrepancy = !discrepancyOnly || o.discrepancyFlag || o.hasDiscrepancy;
 
       const q = search.toLowerCase();
-      const traineeName = o.traineeId?.userId?.name?.toLowerCase() || '';
-      const employerName = o.employmentData?.employerName?.toLowerCase() || '';
-      const businessType = o.selfEmploymentData?.businessType?.toLowerCase() || '';
-      const courseName = o.enrollmentId?.courseId?.courseName?.toLowerCase() || '';
-      const providerName = o.providerId?.organizationName?.toLowerCase() || '';
+      const traineeName =
+        (o.trainee?.fullName || o.traineeId?.userId?.name || '').toLowerCase();
+      const traineeId = (o.trainee?.internalTraineeId || '').toLowerCase();
+      const employerName =
+        (o.employer?.companyName || o.employmentData?.employerName || '').toLowerCase();
+      const courseName =
+        (o.course?.title || o.enrollmentId?.courseId?.courseName || '').toLowerCase();
+      const providerName =
+        (o.provider?.name || o.providerId?.organizationName || '').toLowerCase();
 
       const matchesSearch =
         !search ||
         traineeName.includes(q) ||
+        traineeId.includes(q) ||
         employerName.includes(q) ||
-        businessType.includes(q) ||
         courseName.includes(q) ||
         providerName.includes(q);
 
-      return matchesSituation && matchesType && matchesProvider && matchesSearch;
+      return matchesSituation && matchesType && matchesProvider && matchesDiscrepancy && matchesSearch;
     });
-  }, [outcomes, search, situationFilter, typeFilter, providerFilter]);
+  }, [outcomes, search, situationFilter, typeFilter, providerFilter, discrepancyOnly]);
 
   const getSituationBadge = (situation) => {
-    switch (situation) {
+    const s = situation || 'EMPLOYED';
+    switch (s) {
       case 'EMPLOYED':
         return <Badge status="success" text="EMPLOYED" />;
       case 'SELF_EMPLOYED':
@@ -109,100 +125,104 @@ export const AdminOutcomes = () => {
       case 'UNEMPLOYED':
         return <Badge status="neutral" text="SEEKING WORK" />;
       default:
-        return <Badge status="neutral" text={situation} />;
+        return <Badge status="neutral" text={s} />;
     }
   };
 
   const columns = [
     {
       title: 'Trainee Graduate',
-      dataIndex: 'traineeId',
-      render: (val) => (
-        <div>
-          <div className="font-semibold text-main">{val?.userId?.name || '—'}</div>
-          <div className="text-xs text-muted">@{val?.userId?.username}</div>
-        </div>
-      ),
-    },
-    {
-      title: 'Milestone',
-      dataIndex: 'followUpType',
-      render: (val) => (
-        <span className="font-mono text-xs font-semibold text-primary">
-          {val?.replace('_', '-')}
-        </span>
-      ),
-    },
-    {
-      title: 'Current Situation',
-      dataIndex: 'situation',
-      render: (val) => getSituationBadge(val),
-    },
-    {
-      title: 'Career Summary',
       render: (_, row) => {
-        if (row.situation === 'EMPLOYED' && row.employmentData) {
-          return (
-            <div>
-              <div className="font-medium text-sm">{row.employmentData.jobRole || 'Employee'}</div>
-              <div className="text-xs text-muted">
-                {row.employmentData.employerName} ({row.employmentData.monthlySalaryRange || '—'})
-              </div>
+        const name = row.trainee?.fullName || row.traineeId?.userId?.name || 'Trainee';
+        const internalId = row.trainee?.internalTraineeId || row.traineeId?.userId?.username;
+        return (
+          <div>
+            <div className="font-semibold text-main">{name}</div>
+            <div className="text-xs font-mono text-primary flex items-center gap-1">
+              <IconShield size={11} /> {internalId || 'TRN-2025-XXXXX'}
             </div>
-          );
-        }
-        if (row.situation === 'SELF_EMPLOYED' && row.selfEmploymentData) {
-          return (
-            <div>
-              <div className="font-medium text-sm">{row.selfEmploymentData.businessType || 'Venture'}</div>
-              <div className="text-xs text-muted">Income: {row.selfEmploymentData.monthlyIncomeRange || '—'}</div>
-            </div>
-          );
-        }
-        if (row.situation === 'APPRENTICE' && row.apprenticeshipData) {
-          return (
-            <div>
-              <div className="font-medium text-sm">{row.apprenticeshipData.role || 'Apprentice'}</div>
-              <div className="text-xs text-muted">Host: {row.apprenticeshipData.organizationName}</div>
-            </div>
-          );
-        }
-        if (row.situation === 'UNEMPLOYED' && row.unemploymentData) {
-          return (
-            <div className="text-xs text-muted">
-              Reason: {row.unemploymentData.primaryReason || 'Looking for suitable job'}
-            </div>
-          );
-        }
-        return <span className="text-muted text-xs">—</span>;
+          </div>
+        );
       },
     },
     {
-      title: 'Observed Date',
-      dataIndex: 'observedAt',
-      render: (val) => <span className="text-sm">{formatDate(val)}</span>,
+      title: 'Milestone',
+      render: (_, row) => {
+        const m = row.milestone || row.followUpType?.replace('_', '-') || 'M3';
+        return <span className="font-mono text-xs font-semibold text-primary">{m}</span>;
+      },
     },
     {
-      title: 'Usefulness',
-      dataIndex: 'relevanceRating',
-      render: (val) => (
-        <div className="flex items-center gap-1 text-sm font-semibold">
-          <IconStar size={14} className="text-warning fill-warning" />
-          <span>{val || 5} / 5</span>
-        </div>
-      ),
+      title: 'Status',
+      render: (_, row) => getSituationBadge(row.status || row.situation),
     },
     {
-      title: 'Actions',
+      title: 'Employer & In-Hand Wage',
+      render: (_, row) => {
+        const company = row.employer?.companyName || row.employmentData?.employerName || row.employerName || '—';
+        const wage = row.monthlySalary || row.salary;
+        const designation = row.designation || row.employmentData?.jobRole || 'Technician';
+        return (
+          <div>
+            <div className="font-medium text-sm">{company}</div>
+            <div className="text-xs text-muted flex items-center gap-2">
+              <span>{designation}</span>
+              {wage && (
+                <span className="font-mono text-success font-semibold">
+                  • {formatCurrency(wage)}/mo
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      title: 'Verification Confidence',
+      render: (_, row) => {
+        const score = row.confidenceScore ?? 80;
+        const isDiscrepant = row.discrepancyFlag || row.hasDiscrepancy;
+        return (
+          <div className="flex flex-col gap-0.5">
+            <div className="flex items-center gap-1.5">
+              <span
+                className={`status-pill ${
+                  score >= 75 ? 'pill-verified' : score >= 45 ? 'pill-review' : 'pill-flagged'
+                }`}
+              >
+                {score}% Algorithmic
+              </span>
+            </div>
+            {isDiscrepant && (
+              <span className="text-xs text-danger flex items-center gap-1">
+                <IconAlertCircle size={11} /> Discrepancy Flag
+              </span>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      title: 'Audit & Actions',
       render: (_, row) => (
-        <Button
-          variant="ghost"
-          size="sm"
-          icon={IconEye}
-          onClick={() => setSelectedOutcome(row)}
-        >
-          View Full
-        </Button>
+        <div className="flex items-center gap-1.5">
+          <Button
+            variant="primary"
+            size="sm"
+            icon={IconShield}
+            onClick={() => setVerificationOutcome(row)}
+          >
+            Audit
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={IconEye}
+            onClick={() => setSelectedOutcome(row)}
+          >
+            Details
+          </Button>
+        </div>
       ),
     },
   ];
@@ -315,11 +335,11 @@ export const AdminOutcomes = () => {
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
             >
-              <option value="ALL">All Milestones</option>
-              <option value="30_DAY">30-Day</option>
-              <option value="90_DAY">90-Day</option>
-              <option value="180_DAY">180-Day</option>
-              <option value="365_DAY">365-Day</option>
+              <option value="ALL">All Milestones (M3, M6, M9, M12)</option>
+              <option value="M3">Milestone 3M (90 Days)</option>
+              <option value="M6">Milestone 6M (180 Days)</option>
+              <option value="M9">Milestone 9M (270 Days)</option>
+              <option value="M12">Milestone 12M (365 Days)</option>
             </select>
 
             <select
@@ -330,10 +350,19 @@ export const AdminOutcomes = () => {
               <option value="ALL">All Providers</option>
               {providers.map((p) => (
                 <option key={p._id} value={p._id}>
-                  {p.organizationName}
+                  {p.organizationName || p.name}
                 </option>
               ))}
             </select>
+
+            <button
+              type="button"
+              className={`btn btn-sm ${discrepancyOnly ? 'btn-danger' : 'btn-outline-secondary'}`}
+              onClick={() => setDiscrepancyOnly((prev) => !prev)}
+            >
+              <IconAlertCircle size={14} />
+              <span>{discrepancyOnly ? 'Showing Discrepancies Only' : 'Filter Discrepancies'}</span>
+            </button>
           </div>
         </div>
 
@@ -466,6 +495,18 @@ export const AdminOutcomes = () => {
             </div>
           </div>
         </Modal>
+      )}
+
+      {/* 4-Level Algorithmic Verification Audit Modal */}
+      {verificationOutcome && (
+        <OutcomeVerificationModal
+          outcome={verificationOutcome}
+          onClose={() => setVerificationOutcome(null)}
+          onVerified={() => {
+            fetchData();
+            setToast({ message: 'Outcome verification decision successfully committed.', type: 'success' });
+          }}
+        />
       )}
     </div>
   );

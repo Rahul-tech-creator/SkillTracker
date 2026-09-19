@@ -1,13 +1,19 @@
 const express = require('express');
 const router = express.Router();
-const { createRemedialAction, updateRemedialAction, getRemedialActions } = require('../controllers/remedialActionController');
+const {
+  getRecurringCourseGaps,
+  getRemedialActions,
+  createRemedialAction,
+  conductReassessment,
+  getBeforeAfterComparison,
+} = require('../controllers/remedialActionController');
 const { protect } = require('../middleware/auth');
 const { authorize } = require('../middleware/authorize');
 
-router.use(protect);
-
-router.post('/', authorize('PROVIDER'), createRemedialAction);
-router.put('/:id', authorize('PROVIDER'), updateRemedialAction);
-router.get('/', authorize('ADMIN', 'PROVIDER'), getRemedialActions);
+router.get('/recurring-gaps', protect, authorize('ADMIN', 'PROVIDER'), getRecurringCourseGaps);
+router.get('/:id/comparison', protect, authorize('ADMIN', 'PROVIDER'), getBeforeAfterComparison);
+router.post('/:id/reassess', protect, authorize('ADMIN', 'PROVIDER'), conductReassessment);
+router.post('/', protect, authorize('ADMIN', 'PROVIDER'), createRemedialAction);
+router.get('/', protect, authorize('ADMIN', 'PROVIDER'), getRemedialActions);
 
 module.exports = router;

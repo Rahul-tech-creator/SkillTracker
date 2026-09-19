@@ -33,6 +33,9 @@ import { AdminCourseComparison } from '../pages/admin/CourseComparison';
 import { AdminFundingSchemes } from '../pages/admin/FundingSchemes';
 import { AdminDataQuality } from '../pages/admin/DataQuality';
 import { AdminAIInsights } from '../pages/admin/AIInsights';
+import { DistrictAnalytics } from '../pages/admin/DistrictAnalytics';
+import { DemographicAnalytics } from '../pages/admin/DemographicAnalytics';
+import { PolicyInsights } from '../pages/admin/PolicyInsights';
 
 // Provider Pages
 import { ProviderDashboard } from '../pages/provider/Dashboard';
@@ -98,6 +101,9 @@ export const AppRouter = () => {
         <Route path="provider-comparison" element={<AdminProviderComparison />} />
         <Route path="course-comparison" element={<AdminCourseComparison />} />
         <Route path="funding-schemes" element={<AdminFundingSchemes />} />
+        <Route path="policy-insights" element={<PolicyInsights />} />
+        <Route path="district-analytics" element={<DistrictAnalytics />} />
+        <Route path="demographic-analytics" element={<DemographicAnalytics />} />
         <Route path="ai-insights" element={<AdminAIInsights />} />
         <Route path="data-quality" element={<AdminDataQuality />} />
         <Route path="follow-ups" element={<AdminFollowUps />} />

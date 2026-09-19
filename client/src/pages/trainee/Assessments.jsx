@@ -82,8 +82,8 @@ export const TraineeAssessments = () => {
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', padding: '0.75rem', backgroundColor: 'rgba(255, 255, 255, 0.02)', borderRadius: '6px', marginBottom: '1.25rem', fontSize: '0.85rem' }}>
                     <div>
-                      <span style={{ color: 'var(--text-muted)' }}>Questions: </span>
-                      <strong>{a.totalQuestions || a.questions?.length || 0} MCQs</strong>
+                      <span style={{ color: 'var(--text-muted)' }}>Format: </span>
+                      <strong>{a.caseStudyQuestions?.length || a.totalQuestions || a.questions?.length || 5} Case Study + Adaptive</strong>
                     </div>
                     <div>
                       <span style={{ color: 'var(--text-muted)' }}>Time Limit: </span>

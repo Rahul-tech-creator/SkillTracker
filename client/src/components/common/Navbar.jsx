@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTime } from '../../hooks/useTime';
 import { NotificationsDropdown } from './NotificationsDropdown';
+import { GlobalSearch } from './GlobalSearch';
 import { IconMenu, IconLogOut, IconClock, IconShield } from './Icons';
 import { getInitials, formatDate } from '../../utils/helpers';
 
@@ -55,6 +56,10 @@ export const Navbar = ({ onToggleSidebar, title }) => {
           </div>
           <h1 className="navbar-page-title">{title || 'Overview'}</h1>
         </div>
+      </div>
+
+      <div className="navbar-center">
+        <GlobalSearch />
       </div>
 
       <div className="navbar-right">

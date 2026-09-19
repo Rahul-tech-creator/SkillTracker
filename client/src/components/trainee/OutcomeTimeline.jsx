@@ -168,21 +168,28 @@ export const OutcomeTimeline = ({
                   <div className="timeline-outcome-snapshot">
                     <div className="snapshot-situation-badge">
                       <IconBriefcase size={15} />
-                      <span>{outcome.situation.replace('_', ' ')}</span>
+                      <span>{(outcome.status || outcome.situation || 'EMPLOYED').replace('_', ' ')}</span>
                     </div>
 
-                    {outcome.situation === 'EMPLOYED' && outcome.employmentData && (
+                    {(outcome.situation === 'EMPLOYED' || outcome.status === 'EMPLOYED') && (
                       <div className="snapshot-details">
                         <span>
-                          <strong>Employer:</strong> {outcome.employmentData.employerName || '—'}
+                          <strong>Employer:</strong>{' '}
+                          {outcome.employer?.companyName || outcome.employmentData?.employerName || outcome.employerName || 'Enterprise Partner'}
                         </span>
                         <span>
-                          <strong>Role:</strong> {outcome.employmentData.jobRole || '—'}
+                          <strong>Role:</strong>{' '}
+                          {outcome.designation || outcome.employmentData?.jobRole || 'Technician'}
                         </span>
                         <span>
                           <strong>Salary:</strong>{' '}
-                          {outcome.employmentData.monthlySalaryRange || '—'}
+                          {outcome.monthlySalary ? `₹${outcome.monthlySalary.toLocaleString()}/mo` : outcome.employmentData?.monthlySalaryRange || '—'}
                         </span>
+                        {outcome.confidenceScore !== undefined && (
+                          <span className="badge badge-success font-mono font-bold">
+                            {outcome.confidenceScore}% Verifiable Confidence
+                          </span>
+                        )}
                       </div>
                     )}
 

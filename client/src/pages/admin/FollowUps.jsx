@@ -7,6 +7,7 @@ import { StatCard } from '../../components/common/StatCard';
 import { Toast } from '../../components/common/Toast';
 import { Modal } from '../../components/common/Modal';
 import { CommunicationHistoryModal } from '../../components/common/CommunicationHistoryModal';
+import { CallLogModal } from '../../components/followups/CallLogModal';
 import {
   IconActivity,
   IconSearch,
@@ -28,8 +29,9 @@ import {
 import { formatDate } from '../../utils/helpers';
 
 export const AdminFollowUps = () => {
-  const [activeTab, setActiveTab] = useState('PIPELINE'); // 'PIPELINE' | 'GOV_QUEUE' | 'SETTINGS'
+  const [activeTab, setActiveTab] = useState('PIPELINE'); // 'PIPELINE' | 'ASSISTED_QUEUE' | 'GOV_QUEUE' | 'SETTINGS'
   const [followUps, setFollowUps] = useState([]);
+  const [assistedQueue, setAssistedQueue] = useState([]);
   const [govQueue, setGovQueue] = useState([]);
   const [providers, setProviders] = useState([]);
   const [stats, setStats] = useState({
@@ -64,6 +66,7 @@ export const AdminFollowUps = () => {
 
   const [selectedFollowUp, setSelectedFollowUp] = useState(null);
   const [historyModalFollowUp, setHistoryModalFollowUp] = useState(null);
+  const [callLogTarget, setCallLogTarget] = useState(null);
   const [selectedGovRecord, setSelectedGovRecord] = useState(null);
   const [govActionStatus, setGovActionStatus] = useState('');
   const [govActionNote, setGovActionNote] = useState('');
@@ -72,12 +75,13 @@ export const AdminFollowUps = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [fRes, pRes, sRes, qRes, setRes] = await Promise.all([
+      const [fRes, pRes, sRes, qRes, setRes, aRes] = await Promise.all([
         followUpService.getAll(),
         providerService.getAll(),
         followUpService.getStats(),
         followUpService.getGovernmentQueue(),
         followUpService.getSettings(),
+        followUpService.getAssistedQueue().catch(() => ({ data: { data: [] } })),
       ]);
 
       if (fRes.data.success) setFollowUps(fRes.data.data);
@@ -85,6 +89,7 @@ export const AdminFollowUps = () => {
       if (sRes.data.success) setStats(sRes.data.data);
       if (qRes.data.success) setGovQueue(qRes.data.data);
       if (setRes.data.success) setSettings(setRes.data.data);
+      if (aRes.data?.data) setAssistedQueue(aRes.data.data);
     } catch (err) {
       setToast({ message: err.message || 'Failed to load follow-up tracking data', type: 'error' });
     } finally {
@@ -358,6 +363,71 @@ export const AdminFollowUps = () => {
     },
   ];
 
+  const assistedColumns = [
+    {
+      title: 'Trainee Candidate',
+      render: (_, row) => {
+        const trainee = row.trainee || row.traineeId || {};
+        const name = trainee.fullName || trainee.userId?.name || 'Trainee';
+        const internalId = trainee.internalTraineeId || trainee.userId?.username;
+        return (
+          <div>
+            <div className="font-semibold text-main">{name}</div>
+            <div className="text-xs font-mono text-primary flex items-center gap-1">
+              <IconShield size={11} /> {internalId || 'TRN-VERIFIED'}
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      title: 'Contact Phone',
+      render: (_, row) => {
+        const phone = row.trainee?.phone || row.traineeId?.phone;
+        return (
+          <div className="font-mono text-xs font-semibold">
+            {phone ? (
+              <a href={`tel:${phone}`} className="text-primary hover:underline">
+                📞 {phone}
+              </a>
+            ) : (
+              'Protected Contact'
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      title: 'Milestone Due',
+      render: (_, row) => {
+        const m = row.milestone || row.followUpType?.replace('_', '-') || 'M3';
+        return <span className="font-mono text-xs font-semibold text-primary">{m}</span>;
+      },
+    },
+    {
+      title: 'Escalation Status',
+      render: () => (
+        <div className="text-xs">
+          <span className="badge badge-warning font-bold">Day 6+ Telephony Queue</span>
+          <div className="text-muted mt-0.5">Day 0 Link & Day 3 Reminder Expired</div>
+        </div>
+      ),
+    },
+    {
+      title: 'Actions',
+      render: (_, row) => (
+        <Button
+          variant="primary"
+          size="sm"
+          icon={IconPhoneCall}
+          onClick={() => setCallLogTarget(row)}
+        >
+          Call & Log
+        </Button>
+      ),
+    },
+  ];
+
   return (
     <div className="page-container">
       {toast && (
@@ -397,6 +467,13 @@ export const AdminFollowUps = () => {
           onClick={() => setActiveTab('PIPELINE')}
         >
           <IconActivity size={14} /> Master Follow-up Pipeline ({followUps.length})
+        </button>
+        <button
+          type="button"
+          className={`filter-pill ${activeTab === 'ASSISTED_QUEUE' ? 'active' : ''}`}
+          onClick={() => setActiveTab('ASSISTED_QUEUE')}
+        >
+          <IconPhoneCall size={14} /> Assisted Follow-Up Queue ({assistedQueue.length})
         </button>
         <button
           type="button"
@@ -538,7 +615,31 @@ export const AdminFollowUps = () => {
         </div>
       )}
 
-      {/* TAB 2: GOVERNMENT TRACKING QUEUE */}
+      {/* TAB 2: ASSISTED TELEPHONY FOLLOW-UP QUEUE (Day 6+ Escalation) */}
+      {activeTab === 'ASSISTED_QUEUE' && (
+        <div className="space-y-6">
+          <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3">
+            <IconPhoneCall size={22} className="text-amber-600 shrink-0 mt-0.5" />
+            <div className="text-xs text-amber-900 leading-relaxed">
+              <strong className="block text-sm font-semibold mb-1">
+                Assisted Telephony Follow-Up Queue (Day 0 → Day 3 → Day 6 Escalation Engine)
+              </strong>
+              Trainees who did not respond to automated digital links on Day 0 or automated reminders on Day 3 are automatically escalated to this telephony queue for assisted telephone contact by operations officers.
+            </div>
+          </div>
+
+          <div className="content-card">
+            <Table
+              columns={assistedColumns}
+              data={assistedQueue}
+              loading={loading}
+              emptyText="No trainees currently pending in the assisted telephony queue."
+            />
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: GOVERNMENT TRACKING QUEUE */}
       {activeTab === 'GOV_QUEUE' && (
         <div className="space-y-6">
           {/* Government Tracking Disclaimer Alert */}
@@ -805,6 +906,18 @@ export const AdminFollowUps = () => {
             </div>
           </div>
         </Modal>
+      )}
+
+      {/* Assisted Telephony Call Logging Modal */}
+      {callLogTarget && (
+        <CallLogModal
+          followUp={callLogTarget}
+          onClose={() => setCallLogTarget(null)}
+          onLogged={() => {
+            fetchData();
+            setToast({ message: '✓ Telephony call log successfully recorded.', type: 'success' });
+          }}
+        />
       )}
     </div>
   );

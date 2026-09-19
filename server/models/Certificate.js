@@ -42,7 +42,7 @@ const certificateSchema = new mongoose.Schema(
     issuedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
+      required: false,
     },
     status: {
       type: String,

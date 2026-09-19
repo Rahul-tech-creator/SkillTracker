@@ -1,21 +1,43 @@
 const mongoose = require('mongoose');
 
-const courseSkillSchema = new mongoose.Schema(
+const courseCompetencyEmbeddedSchema = new mongoose.Schema(
   {
-    skillId: {
-      type: String,
-      required: true,
-    },
-    skillName: {
+    competencyId: {
       type: String,
       required: true,
       trim: true,
     },
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    description: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    category: {
+      type: String,
+      enum: ['TECHNICAL', 'PRACTICAL', 'DOMAIN', 'SOFT_SKILL', 'SAFETY'],
+      default: 'TECHNICAL',
+    },
+    beginnerRubric: { type: String, default: '' },
+    intermediateRubric: { type: String, default: '' },
+    advancedRubric: { type: String, default: '' },
     weight: {
       type: Number,
-      default: 0,
+      required: true,
       min: 0,
       max: 100,
+      default: 10,
+    },
+    courseRelevance: { type: Number, default: 5 },
+    marketRelevance: { type: Number, default: 4 },
+    currentDemandIndicator: {
+      type: String,
+      enum: ['HIGH', 'MODERATE', 'EMERGING', 'DECLINING'],
+      default: 'HIGH',
     },
   },
   { _id: false }
@@ -27,11 +49,17 @@ const courseSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Provider',
       required: true,
+      index: true,
     },
     courseName: {
       type: String,
       required: [true, 'Course name is required'],
       trim: true,
+    },
+    courseCode: {
+      type: String,
+      trim: true,
+      default: '',
     },
     description: {
       type: String,
@@ -42,16 +70,48 @@ const courseSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: '',
+      index: true,
+    },
+    durationHours: {
+      type: Number,
+      default: 120,
     },
     duration: {
       type: String,
       trim: true,
-      default: '',
+      default: '3 Months (360 Hours)',
     },
-    // Structured skills with weights
-    skills: {
-      type: [courseSkillSchema],
+    // Rich Competency Framework Mapping
+    competencies: {
+      type: [courseCompetencyEmbeddedSchema],
       default: [],
+    },
+    // Backwards-compatible skills array
+    skills: [
+      {
+        skillId: String,
+        skillName: String,
+        weight: Number,
+      },
+    ],
+    // Course-Market Alignment Intelligence
+    marketAlignmentScore: {
+      type: Number,
+      default: 85, // 0 - 100% computed from market requirements
+      min: 0,
+      max: 100,
+    },
+    missingHighDemandSkills: {
+      type: [String],
+      default: [],
+    },
+    outdatedSkills: {
+      type: [String],
+      default: [],
+    },
+    marketEvaluatedAt: {
+      type: Date,
+      default: Date.now,
     },
     status: {
       type: String,
@@ -62,33 +122,14 @@ const courseSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Validate: no duplicate skill names within a course, auto-repair skillId/skillName
+// Synchronize competencies and flat skills array automatically
 courseSchema.pre('validate', function (next) {
-  if (this.skills && this.skills.length > 0) {
-    this.skills.forEach((s, idx) => {
-      if (typeof s === 'string') {
-        const name = s.trim();
-        const id = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '') || `skill_${idx + 1}`;
-        this.skills[idx] = { skillId: id, skillName: name, weight: 0 };
-      } else if (s && typeof s === 'object') {
-        const name = (s.skillName || s.name || s.title || s.skillId || '').toString().trim();
-        s.skillName = name;
-        if (!s.skillId) {
-          s.skillId = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '') || `skill_${idx + 1}`;
-        }
-      }
-    });
-
-    const names = this.skills.map((s) => (s?.skillName || '').toString().toLowerCase()).filter(Boolean);
-    const uniqueNames = new Set(names);
-    if (uniqueNames.size !== names.length) {
-      return next(new Error('Duplicate skill names are not allowed within a course.'));
-    }
-    // Validate weights: must all be 0 (equal weighting) or sum to 100
-    const totalWeight = this.skills.reduce((sum, s) => sum + (s?.weight || 0), 0);
-    if (totalWeight > 0 && Math.abs(totalWeight - 100) > 0.01) {
-      return next(new Error('Skill weights must sum to 100 or all be 0 for equal weighting.'));
-    }
+  if (this.competencies && this.competencies.length > 0) {
+    this.skills = this.competencies.map((c) => ({
+      skillId: c.competencyId,
+      skillName: c.name,
+      weight: c.weight,
+    }));
   }
   next();
 });

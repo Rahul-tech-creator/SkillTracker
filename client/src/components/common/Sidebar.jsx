@@ -24,6 +24,8 @@ import {
   IconZap,
   IconSliders,
   IconShield,
+  IconMapPin,
+  IconPieChart,
 } from './Icons';
 
 export const Sidebar = ({ isOpen, onClose }) => {
@@ -59,7 +61,10 @@ export const Sidebar = ({ isOpen, onClose }) => {
         {
           groupTitle: 'INTELLIGENCE',
           items: [
-            { path: '/admin/ai-insights', label: 'AI Intelligence Hub', icon: IconBrain },
+            { path: '/admin/policy-insights', label: 'Policy Insights & Evidence', icon: IconBrain },
+            { path: '/admin/district-analytics', label: 'District Performance', icon: IconMapPin },
+            { path: '/admin/demographic-analytics', label: 'Demographic Equity', icon: IconPieChart },
+            { path: '/admin/ai-insights', label: 'AI Intelligence Hub', icon: IconZap },
             { path: '/admin/data-quality', label: 'Data Quality Audit', icon: IconSliders },
           ],
         },

@@ -47,6 +47,11 @@ Deterministic Classification:
 - Weak skills (40-59%): ${deterministic.weakSkills.join(', ') || 'None'}
 - Critical gaps (<40%): ${deterministic.criticalGaps.join(', ') || 'None'}
 
+CRITICAL INSTRUCTION FOR NUMERIC FIELDS:
+For readinessScore, recallScore, applicationScore, analysisScore, synthesisScore:
+Provide ONLY a valid numeric integer between 0 and 100, or null if evidence is insufficient.
+NEVER provide a string such as "INSUFFICIENT EVIDENCE" or "N/A" for these numeric properties.
+
 Based on this ACTUAL ASSESSMENT EVIDENCE, provide an in-depth diagnostic analysis in this JSON format:
 {
   "summary": "Detailed executive analysis summarizing conceptual strengths, specific knowledge deficits, and developmental trajectory.",
@@ -121,7 +126,62 @@ Based on this ACTUAL ASSESSMENT EVIDENCE, provide an in-depth diagnostic analysi
   "limitations": ["data limitations based on test sample size"]
 }`;
 
-  return chatCompletion(systemPrompt, userPrompt, { temperature: 0.3, expectJson: true, jsonMode: true });
+  try {
+    const raw = await chatCompletion(systemPrompt, userPrompt, { temperature: 0.3, expectJson: true, jsonMode: true });
+    if (!raw || typeof raw !== 'object' || raw._parseError) {
+      return null;
+    }
+
+    const parseNum = (val) => {
+      if (typeof val === 'number' && !isNaN(val)) return Math.min(100, Math.max(0, Math.round(val)));
+      if (typeof val === 'string') {
+        const n = parseFloat(val);
+        if (!isNaN(n)) return Math.min(100, Math.max(0, Math.round(n)));
+      }
+      return null;
+    };
+
+    const cognitive = raw.cognitiveBreakdown || {};
+    const recall = parseNum(cognitive.recallScore);
+    const application = parseNum(cognitive.applicationScore);
+    const analysis = parseNum(cognitive.analysisScore);
+    const synthesis = parseNum(cognitive.synthesisScore);
+
+    const hasNullScore = recall === null || application === null || analysis === null || synthesis === null;
+
+    const normalized = {
+      summary: typeof raw.summary === 'string' ? raw.summary : '',
+      strongSkills: Array.isArray(raw.strongSkills) ? raw.strongSkills : [],
+      developingSkills: Array.isArray(raw.developingSkills) ? raw.developingSkills : [],
+      skillGaps: Array.isArray(raw.skillGaps) ? raw.skillGaps : [],
+      misconceptionAnalysis: Array.isArray(raw.misconceptionAnalysis) ? raw.misconceptionAnalysis : [],
+      remedialRoadmap: Array.isArray(raw.remedialRoadmap) ? raw.remedialRoadmap : [],
+      careerReadiness: {
+        rating: raw.careerReadiness?.rating || 'DEVELOPING',
+        readinessScore: parseNum(raw.careerReadiness?.readinessScore) ?? overallPercentage,
+        justification: raw.careerReadiness?.justification || '',
+        suggestedRoles: Array.isArray(raw.careerReadiness?.suggestedRoles) ? raw.careerReadiness.suggestedRoles : [],
+        targetCertifications: Array.isArray(raw.careerReadiness?.targetCertifications) ? raw.careerReadiness.targetCertifications : [],
+        salaryGrowthPotential: raw.careerReadiness?.salaryGrowthPotential || '',
+      },
+      cognitiveBreakdown: {
+        recallScore: recall,
+        applicationScore: application,
+        analysisScore: analysis,
+        synthesisScore: synthesis,
+        evidenceStatus: hasNullScore ? 'INSUFFICIENT_EVIDENCE' : 'SUFFICIENT',
+        notes: hasNullScore ? 'Partial or insufficient evidence detected for select cognitive dimensions.' : '',
+      },
+      recommendedSkills: Array.isArray(raw.recommendedSkills) ? raw.recommendedSkills : [],
+      providerActions: Array.isArray(raw.providerActions) ? raw.providerActions : [],
+      limitations: Array.isArray(raw.limitations) ? raw.limitations : [],
+    };
+
+    return normalized;
+  } catch (err) {
+    console.error('analyzeSkillGaps normalization/API error:', err.message);
+    return null;
+  }
 };
 
 module.exports = { analyzeSkillGaps };

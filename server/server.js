@@ -9,13 +9,33 @@ const app = express();
 // Connect to MongoDB
 connectDB();
 
-// Middleware
+// CORS configuration
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  'https://skill-tracker-tech.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:3000'
+].filter(Boolean).map(url => url.trim().replace(/\/$/, ''));
+
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    const cleanOrigin = origin.trim().replace(/\/$/, '');
+    if (allowedOrigins.includes(cleanOrigin) || cleanOrigin.endsWith('.vercel.app')) {
+      return callback(null, true);
+    }
+    return callback(null, true);
+  },
   credentials: true,
 }));
 app.use(express.json());
 app.use(cookieParser());
+
+// Root route
+app.get('/', (req, res) => {
+  res.json({ status: 'OK', message: 'Skilling Tracker API is online', health: '/api/health' });
+});
+
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
@@ -38,6 +58,8 @@ app.use('/api/provider-comparison', require('./routes/providerComparison'));
 app.use('/api/course-comparison', require('./routes/courseComparison'));
 app.use('/api/funding-schemes', require('./routes/fundingSchemes'));
 app.use('/api/data-quality', require('./routes/dataQuality'));
+app.use('/api/analytics', require('./routes/analytics'));
+app.use('/api/search', require('./routes/search'));
 
 
 // Health check

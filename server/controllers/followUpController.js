@@ -5,6 +5,7 @@ const Trainee = require('../models/Trainee');
 const Provider = require('../models/Provider');
 const SystemSetting = require('../models/SystemSetting');
 const CommunicationHistory = require('../models/CommunicationHistory');
+const CommunicationAttempt = require('../models/CommunicationAttempt');
 const CallAttempt = require('../models/CallAttempt');
 const ConsentHistory = require('../models/ConsentHistory');
 const IdentityReference = require('../models/IdentityReference');
@@ -1382,6 +1383,150 @@ const submitFollowUpResponse = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/followups/assisted-queue
+ * Queue of trainees requiring human operator follow-up calls (Day 6 escalation)
+ */
+const getAssistedFollowUpQueue = async (req, res) => {
+  try {
+    await evaluateReadiness();
+    let filter = {
+      $or: [
+        { escalationStage: 'DAY_6_ASSISTED_CALL' },
+        { status: 'CALL_REQUIRED' },
+        { status: 'CALL_ATTEMPTED' },
+      ],
+      trackingConsent: 'GRANTED',
+    };
+
+    if (req.user.role === 'PROVIDER') {
+      const provider = await getProviderRecord(req.user._id);
+      if (!provider) return res.json({ success: true, count: 0, data: [] });
+      filter.providerId = provider._id;
+    }
+
+    const tasks = await FollowUp.find(filter)
+      .populate({
+        path: 'traineeId',
+        select: 'internalTraineeId phone alternatePhone email preferredChannel district state contactStatus lastSuccessfulContact',
+        populate: { path: 'userId', select: 'name email username' },
+      })
+      .populate({
+        path: 'enrollmentId',
+        populate: [
+          { path: 'courseId', select: 'courseName category' },
+          { path: 'batchId', select: 'batchName' },
+        ],
+      })
+      .populate('providerId', 'organizationName contactPerson phone')
+      .populate('assignedOperatorId', 'name email')
+      .sort({ escalatedToCallQueueAt: -1, scheduledDate: 1 })
+      .limit(100)
+      .lean();
+
+    const enrichedTasks = await Promise.all(
+      tasks.map(async (task) => {
+        const attempts = await CommunicationAttempt.find({ followUpId: task._id })
+          .sort({ attemptedAt: -1 })
+          .limit(5)
+          .lean();
+        return {
+          ...task,
+          recentAttempts: attempts,
+        };
+      })
+    );
+
+    res.json({
+      success: true,
+      count: enrichedTasks.length,
+      data: enrichedTasks,
+    });
+  } catch (error) {
+    console.error('getAssistedFollowUpQueue error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * POST /api/followups/:id/log-call
+ * Operator logs call attempt outcome
+ */
+const logOperatorCall = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, operatorNotes, callDurationSeconds, newContactInfo } = req.body;
+
+    const followUp = await FollowUp.findById(id).populate('traineeId');
+    if (!followUp) return res.status(404).json({ success: false, message: 'Follow-up task not found' });
+
+    const logicalNow = await timeService.getCurrentDate();
+
+    // Record Communication Attempt
+    await CommunicationAttempt.create({
+      traineeId: followUp.traineeId._id,
+      followUpId: followUp._id,
+      providerId: followUp.providerId,
+      channel: 'CALL',
+      stage: 'DAY_6_ASSISTED_CALL',
+      destination: followUp.traineeId.phone,
+      status: status || 'CALL_COMPLETED',
+      operatorNotes: operatorNotes || '',
+      callDurationSeconds: callDurationSeconds || 0,
+      callerOperatorId: req.user._id,
+      attemptedAt: logicalNow,
+    });
+
+    followUp.lastCallAttemptAt = logicalNow;
+    followUp.callAttemptsCount = (followUp.callAttemptsCount || 0) + 1;
+    followUp.operatorNotes = operatorNotes || followUp.operatorNotes;
+    followUp.assignedOperatorId = req.user._id;
+
+    if (status === 'CALL_COMPLETED') {
+      followUp.status = 'WAITING_FOR_RESPONSE';
+      followUp.escalationStage = 'RESOLVED';
+      await Trainee.findByIdAndUpdate(followUp.traineeId._id, {
+        lastSuccessfulContact: logicalNow,
+        contactStatus: 'VERIFIED',
+      });
+    } else if (status === 'WRONG_NUMBER' || status === 'UNREACHABLE') {
+      followUp.status = 'UNREACHABLE';
+      await Trainee.findByIdAndUpdate(followUp.traineeId._id, {
+        contactStatus: 'UNREACHABLE',
+      });
+    } else {
+      followUp.status = 'CALL_ATTEMPTED';
+    }
+
+    // Handle contact info update without creating a new trainee
+    if (newContactInfo && newContactInfo.phone && newContactInfo.phone !== followUp.traineeId.phone) {
+      const trainee = await Trainee.findById(followUp.traineeId._id);
+      if (trainee) {
+        trainee.phoneChangeHistory.push({
+          oldPhone: trainee.phone,
+          newPhone: newContactInfo.phone,
+          changedAt: logicalNow,
+          reason: 'Updated during operator assisted call',
+        });
+        trainee.phone = newContactInfo.phone;
+        trainee.contactStatus = 'UPDATED';
+        await trainee.save();
+      }
+    }
+
+    await followUp.save();
+
+    res.json({
+      success: true,
+      message: 'Operator call attempt logged successfully',
+      data: followUp,
+    });
+  } catch (error) {
+    console.error('logOperatorCall error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   getMyFollowUps,
   getFollowUps,
@@ -1403,4 +1548,6 @@ module.exports = {
   updateFollowUpSettings,
   submitFollowUpResponse,
   markUnreachable,
+  getAssistedFollowUpQueue,
+  logOperatorCall,
 };

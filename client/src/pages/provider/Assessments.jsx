@@ -325,9 +325,38 @@ export const ProviderAssessments = () => {
                 </div>
               )}
 
-              <h4 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '1rem' }}>Generated Questions & Answer Key</h4>
+              {/* Architecture Explanation Banner */}
+              <div style={{ padding: '0.85rem', backgroundColor: 'rgba(59, 130, 246, 0.08)', border: '1px solid rgba(59, 130, 246, 0.25)', borderRadius: '6px', marginBottom: '1.25rem', fontSize: '0.85rem', lineHeight: '1.5' }}>
+                <div style={{ fontWeight: '700', color: '#60a5fa', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <IconBrain size={16} /> Two-Phase Adaptive Assessment Structure
+                </div>
+                <div style={{ color: 'var(--text-secondary)' }}>
+                  <strong>Phase 1 (Fixed):</strong> Predefined Case Study Scenario + {selectedAssessment.caseStudyQuestions?.length || selectedAssessment.questions?.length || 0} Fixed MCQs shown below. Fixed upon publishing.
+                  <br />
+                  <strong>Phase 2 (Dynamic Adaptive):</strong> Subsequent questions are generated on the fly per trainee based on their accumulated evidence. No predefined adaptive questions exist.
+                </div>
+              </div>
+
+              {/* Case Study Scenario Section */}
+              {selectedAssessment.caseStudy?.scenario && (
+                <div style={{ padding: '1.25rem', backgroundColor: 'rgba(15, 23, 42, 0.75)', borderRadius: '8px', border: '1px solid rgba(59, 130, 246, 0.2)', marginBottom: '1.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <span className="badge badge-primary">Phase 1 Case Study</span>
+                    <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '700', color: '#93c5fd' }}>
+                      {selectedAssessment.caseStudy.title || 'Case Study Scenario'}
+                    </h4>
+                  </div>
+                  <div style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: '1.65', whiteSpace: 'pre-wrap' }}>
+                    {selectedAssessment.caseStudy.scenario}
+                  </div>
+                </div>
+              )}
+
+              <h4 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '1rem' }}>
+                Phase 1 Predefined Questions & Answer Key ({selectedAssessment.caseStudyQuestions?.length || selectedAssessment.questions?.length || 0} MCQs)
+              </h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {selectedAssessment.questions?.map((q, idx) => (
+                {(selectedAssessment.caseStudyQuestions?.length > 0 ? selectedAssessment.caseStudyQuestions : selectedAssessment.questions)?.map((q, idx) => (
                   <div key={idx} style={{ padding: '1rem', backgroundColor: 'rgba(15, 23, 42, 0.6)', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
                       <div style={{ fontWeight: '700', fontSize: '0.95rem' }}>

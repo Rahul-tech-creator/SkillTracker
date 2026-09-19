@@ -6,16 +6,17 @@ const outcomeRecordSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Trainee',
       required: true,
+      index: true,
     },
     enrollmentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Enrollment',
       required: true,
+      index: true,
     },
     certificateId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Certificate',
-      required: false,
       default: null,
     },
     followUpId: {
@@ -23,148 +24,114 @@ const outcomeRecordSchema = new mongoose.Schema(
       ref: 'FollowUp',
       required: true,
       unique: true, // One outcome record per follow-up milestone
+      index: true,
     },
     providerId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Provider',
       required: true,
+      index: true,
     },
     followUpType: {
       type: String,
-      enum: ['INITIAL_3_DAY', '30_DAY', '90_DAY', '180_DAY', '365_DAY'],
+      enum: ['3_MONTH', '6_MONTH', '9_MONTH', '12_MONTH'],
       required: true,
+      index: true,
     },
     observedAt: {
       type: Date,
       required: true,
+      index: true,
     },
     situation: {
       type: String,
       enum: [
         'EMPLOYED',
         'SELF_EMPLOYED',
-        'APPRENTICE',
         'APPRENTICESHIP',
-        'UNEMPLOYED',
-        'LOOKING_FOR_JOB',
-        'STUDYING',
         'FURTHER_EDUCATION',
-        'NOT_WORKING',
+        'UNEMPLOYED',
         'OTHER',
       ],
       required: true,
+      index: true,
     },
+
+    // Decoupled Employment Link
+    employmentRecordId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'EmploymentRecord',
+      default: null,
+    },
+    // Verification Event Link
+    verificationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'OutcomeVerification',
+      default: null,
+    },
+
+    // Inline Snapshot for Fast Reporting & Longitudinal Trends
     employmentData: {
       isEmployed: { type: Boolean, default: false },
       employerName: { type: String, trim: true, default: '' },
       jobRole: { type: String, trim: true, default: '' },
+      industry: { type: String, trim: true, default: '' },
       startDate: { type: Date, default: null },
-      monthlySalaryRange: {
-        type: String,
-        enum: [
-          'Below ₹10,000',
-          '₹10,000–₹20,000',
-          '₹20,000–₹30,000',
-          '₹30,000–₹50,000',
-          'Above ₹50,000',
-          'Prefer not to say',
-          '',
-        ],
-        default: '',
-      },
-      isRelatedToTraining: {
-        type: String,
-        enum: ['YES', 'PARTLY', 'NO', ''],
-        default: '',
-      },
-      trainingUsefulness: {
-        type: Number,
-        min: 1,
-        max: 5,
-        default: null,
-      },
+      monthlySalary: { type: Number, default: 0 },
+      monthlySalaryRange: { type: String, default: '' },
+      isRelatedToTraining: { type: String, enum: ['YES', 'PARTLY', 'NO', ''], default: 'YES' },
+      trainingUsefulness: { type: Number, min: 1, max: 5, default: 5 },
+      skillsUsed: [{ type: String, trim: true }],
     },
+
+    // Wage & Retention Intelligence
+    wageProgression: {
+      baselineWage: { type: Number, default: 0 },
+      currentWage: { type: Number, default: 0 },
+      wageGrowthAbsolute: { type: Number, default: 0 },
+      wageGrowthPercentage: { type: Number, default: 0 },
+      retentionDays: { type: Number, default: 0 },
+      isContinuousEmployment: { type: Boolean, default: true },
+      jobChangesCount: { type: Number, default: 0 },
+    },
+
+    // Self-Employment Record
     selfEmploymentData: {
       isSelfEmployed: { type: Boolean, default: false },
       businessType: { type: String, trim: true, default: '' },
+      sector: { type: String, trim: true, default: '' },
       startDate: { type: Date, default: null },
-      monthlyIncomeRange: {
-        type: String,
-        enum: [
-          'Below ₹10,000',
-          '₹10,000–₹20,000',
-          '₹20,000–₹30,000',
-          '₹30,000–₹50,000',
-          'Above ₹50,000',
-          'Prefer not to say',
-          '',
-        ],
-        default: '',
-      },
-      isRelatedToTraining: {
-        type: String,
-        enum: ['YES', 'PARTLY', 'NO', ''],
-        default: '',
-      },
-      trainingUsefulness: {
-        type: Number,
-        min: 1,
-        max: 5,
-        default: null,
-      },
+      monthlyIncome: { type: Number, default: 0 },
+      monthlyIncomeRange: { type: String, default: '' },
+      isRelatedToTraining: { type: String, enum: ['YES', 'PARTLY', 'NO', ''], default: 'YES' },
+      viabilityScore: { type: Number, min: 1, max: 5, default: 4 },
+      hasHiredOthers: { type: Boolean, default: false },
     },
+
+    // Apprenticeship Record
     apprenticeshipData: {
       organizationName: { type: String, trim: true, default: '' },
       role: { type: String, trim: true, default: '' },
       startDate: { type: Date, default: null },
       expectedEndDate: { type: Date, default: null },
-      monthlyStipendRange: {
-        type: String,
-        enum: [
-          'Below ₹10,000',
-          '₹10,000–₹20,000',
-          '₹20,000–₹30,000',
-          'Above ₹30,000',
-          'Unpaid',
-          '',
-        ],
-        default: '',
-      },
-      isRelatedToTraining: {
-        type: String,
-        enum: ['YES', 'PARTLY', 'NO', ''],
-        default: '',
-      },
+      monthlyStipend: { type: Number, default: 0 },
+      monthlyStipendRange: { type: String, default: '' },
+      isRelatedToTraining: { type: String, enum: ['YES', 'PARTLY', 'NO', ''], default: 'YES' },
     },
+
+    // Unemployed Context
     unemploymentData: {
       isLookingForWork: { type: Boolean, default: false },
-      primaryReason: {
-        type: String,
-        enum: [
-          'Could not find suitable job',
-          'Lack of required skills',
-          'Salary too low',
-          'Location issue',
-          'No suitable opportunities',
-          'Further studies',
-          'Personal reasons',
-          'Other',
-          '',
-        ],
-        default: '',
-      },
+      primaryReason: { type: String, trim: true, default: '' },
       needsAdditionalSkills: { type: Boolean, default: false },
       requestedSkills: { type: String, trim: true, default: '' },
     },
+
     relevanceRating: {
       type: Number,
       min: 1,
       max: 5,
       default: 5,
-    },
-    feedback: {
-      whatCouldBeBetter: { type: String, trim: true, default: '' },
-      additionalSupportNeeded: { type: String, trim: true, default: '' },
     },
     source: {
       type: String,
@@ -174,9 +141,8 @@ const outcomeRecordSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Indexes
 outcomeRecordSchema.index({ traineeId: 1, observedAt: -1 });
 outcomeRecordSchema.index({ providerId: 1, situation: 1 });
-outcomeRecordSchema.index({ enrollmentId: 1 });
+outcomeRecordSchema.index({ followUpType: 1, situation: 1 });
 
 module.exports = mongoose.model('OutcomeRecord', outcomeRecordSchema);

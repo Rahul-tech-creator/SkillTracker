@@ -26,6 +26,83 @@ const skillScoreSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const caseStudyResponseSchema = new mongoose.Schema(
+  {
+    questionId: { type: String, required: true },
+    sequenceNumber: { type: Number, required: true },
+    selectedAnswer: { type: String, default: null },
+    isCorrect: { type: Boolean, default: false },
+    skillId: { type: String, required: true },
+    skillName: { type: String, required: true },
+    marks: { type: Number, default: 0 },
+    maxMarks: { type: Number, default: 1 },
+    answeredAt: { type: Date, default: Date.now },
+  },
+  { _id: false }
+);
+
+const caseStudyEvidenceSchema = new mongoose.Schema(
+  {
+    questionId: { type: String, required: true },
+    sequenceNumber: { type: Number, required: true },
+    competencies: [{ type: String }],
+    strengths: [{ type: String }],
+    weaknesses: [{ type: String }],
+    misconceptions: [{ type: String }],
+    evidenceLevel: { type: String, default: 'MEDIUM' },
+    analysisStatus: {
+      type: String,
+      enum: ['PENDING', 'COMPLETED', 'FAILED'],
+      default: 'PENDING',
+    },
+    analyzedAt: { type: Date, default: null },
+    error: { type: String, default: '' },
+  },
+  { _id: false }
+);
+
+const adaptiveQuestionSchema = new mongoose.Schema(
+  {
+    questionId: { type: String, required: true },
+    sequenceNumber: { type: Number, required: true },
+    questionText: { type: String, required: true },
+    options: [
+      {
+        label: { type: String, required: true },
+        text: { type: String, required: true },
+      },
+    ],
+    correctAnswer: { type: String, required: true },
+    skillId: { type: String, required: true },
+    skillName: { type: String, required: true },
+    difficulty: {
+      type: String,
+      enum: ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'],
+      default: 'INTERMEDIATE',
+    },
+    explanation: { type: String, default: '' },
+    marks: { type: Number, default: 1 },
+    generatedAt: { type: Date, default: Date.now },
+  },
+  { _id: false }
+);
+
+const adaptiveResponseSchema = new mongoose.Schema(
+  {
+    questionId: { type: String, required: true },
+    sequenceNumber: { type: Number, required: true },
+    selectedAnswer: { type: String, default: null },
+    isCorrect: { type: Boolean, default: false },
+    skillId: { type: String, required: true },
+    skillName: { type: String, required: true },
+    difficulty: { type: String, default: 'INTERMEDIATE' },
+    marks: { type: Number, default: 0 },
+    maxMarks: { type: Number, default: 1 },
+    answeredAt: { type: Date, default: Date.now },
+  },
+  { _id: false }
+);
+
 const attemptSchema = new mongoose.Schema(
   {
     assessmentId: {
@@ -84,6 +161,43 @@ const attemptSchema = new mongoose.Schema(
       type: String,
       enum: ['IN_PROGRESS', 'SUBMITTED'],
       default: 'IN_PROGRESS',
+    },
+    // Phase tracking
+    currentPhase: {
+      type: String,
+      enum: ['CASE_STUDY', 'ANALYZING_CASE_STUDY', 'PREPARING_ADAPTIVE', 'ADAPTIVE', 'COMPLETED'],
+      default: 'CASE_STUDY',
+    },
+    // Phase 1: Case study answers and asynchronous evidence
+    caseStudyResponses: [caseStudyResponseSchema],
+    caseStudyEvidence: [caseStudyEvidenceSchema],
+    // Phase 2: Runtime generated adaptive questions and trainee responses
+    adaptiveQuestions: [adaptiveQuestionSchema],
+    adaptiveResponses: [adaptiveResponseSchema],
+    // Competency profile built after case study and updated dynamically
+    competencyProfile: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
+    targetAdaptiveQuestions: {
+      type: Number,
+      default: 5,
+    },
+    // Adaptive session state tracking
+    isAdaptive: {
+      type: Boolean,
+      default: true,
+    },
+    currentQuestionId: {
+      type: String,
+      default: null,
+    },
+    answeredQuestionIds: [{
+      type: String,
+    }],
+    competencyStates: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
     },
   },
   { timestamps: true }

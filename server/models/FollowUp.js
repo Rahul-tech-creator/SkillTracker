@@ -16,7 +16,7 @@ const followUpSchema = new mongoose.Schema(
     certificateId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Certificate',
-      required: true,
+      default: null,
     },
     providerId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -24,14 +24,27 @@ const followUpSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    // Standard Longitudinal Post-Training Milestones
     followUpType: {
       type: String,
-      enum: ['INITIAL_3_DAY', '30_DAY', '90_DAY', '180_DAY', '365_DAY'],
+      enum: [
+        '3_MONTH',
+        '6_MONTH',
+        '9_MONTH',
+        '12_MONTH',
+        // Legacy compatibility
+        'INITIAL_3_DAY',
+        '30_DAY',
+        '90_DAY',
+        '180_DAY',
+        '365_DAY',
+      ],
       required: true,
+      index: true,
     },
     daysInterval: {
       type: Number,
-      required: true, // 3, 30, 90, 180, 365
+      required: true, // 90, 180, 270, 365
     },
     scheduledDate: {
       type: Date,
@@ -43,30 +56,60 @@ const followUpSchema = new mongoose.Schema(
       enum: [
         'NOT_DUE',
         'DUE',
-        'WHATSAPP_PENDING',
-        'EMAIL_PENDING',
+        'READY',
         'DIGITAL_CONTACTED',
         'WAITING_FOR_RESPONSE',
         'RESPONDED',
         'CALL_REQUIRED',
         'CALL_ATTEMPTED',
-        'WAITING_AFTER_CALL',
         'NOT_RESPONDED',
-        'GOVERNMENT_TRACKING_FLAGGED',
-        'TRACKING_SUSPENDED',
-        'RETURNED',
         'OPTED_OUT',
-        'INVALID_CONTACT',
-        'RESCHEDULED',
-        // Legacy statuses for backwards compatibility
-        'SCHEDULED',
-        'READY',
-        'COMPLETED',
         'UNREACHABLE',
+        'COMPLETED',
       ],
       default: 'NOT_DUE',
       index: true,
     },
+
+    // Escalation Pipeline (Day 0 -> Day 3 -> Day 6 Assisted Queue)
+    escalationStage: {
+      type: String,
+      enum: ['NOT_STARTED', 'DAY_0_DIGITAL', 'DAY_3_REMINDER', 'DAY_6_ASSISTED_CALL', 'RESOLVED'],
+      default: 'NOT_STARTED',
+      index: true,
+    },
+    digitalSentAt: {
+      type: Date,
+      default: null,
+    },
+    reminderSentAt: {
+      type: Date,
+      default: null,
+    },
+    escalatedToCallQueueAt: {
+      type: Date,
+      default: null,
+      index: true,
+    },
+    assignedOperatorId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
+    operatorNotes: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    lastCallAttemptAt: {
+      type: Date,
+      default: null,
+    },
+    callAttemptsCount: {
+      type: Number,
+      default: 0,
+    },
+
     // Secure token for privacy-safe tracking links
     followUpToken: {
       type: String,
@@ -78,87 +121,22 @@ const followUpSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
-    // Digital contact tracking
-    digitalContactedAt: {
-      type: Date,
-      default: null,
-    },
-    digitalChannel: {
-      type: String,
-      enum: ['WHATSAPP', 'EMAIL', 'BOTH', 'NONE'],
-      default: 'NONE',
-    },
-    digitalResponseDeadline: {
-      type: Date,
-      default: null,
-    },
-    // Call escalation tracking
-    callRequiredAt: {
-      type: Date,
-      default: null,
-    },
-    callAttemptedAt: {
-      type: Date,
-      default: null,
-    },
-    callResponseDeadline: {
-      type: Date,
-      default: null,
-    },
-    callAttemptsCount: {
-      type: Number,
-      default: 0,
-    },
-    // Government tracking escalation
-    escalatedToGovernmentAt: {
-      type: Date,
-      default: null,
-    },
-    // Return & Opt-out tracking
-    returnedAt: {
-      type: Date,
-      default: null,
-    },
-    optedOutAt: {
-      type: Date,
-      default: null,
-    },
     trackingConsent: {
       type: String,
       enum: ['GRANTED', 'WITHDRAWN', 'PENDING'],
       default: 'GRANTED',
     },
-    sentAt: {
-      type: Date,
-      default: null,
-    },
     completedAt: {
       type: Date,
       default: null,
-    },
-    attemptCount: {
-      type: Number,
-      default: 0,
-    },
-    notes: {
-      type: String,
-      trim: true,
-      default: '',
-    },
-    lastCommunicationNote: {
-      type: String,
-      trim: true,
-      default: '',
     },
   },
   { timestamps: true }
 );
 
-// Prevent duplicate follow-up of same interval type for the same enrollment
-followUpSchema.index({ traineeId: 1, enrollmentId: 1, followUpType: 1 }, { unique: true });
+followUpSchema.index({ traineeId: 1, enrollmentId: 1, followUpType: 1 });
 followUpSchema.index({ providerId: 1, status: 1 });
 followUpSchema.index({ scheduledDate: 1, status: 1 });
-followUpSchema.index({ digitalResponseDeadline: 1, status: 1 });
-followUpSchema.index({ callResponseDeadline: 1, status: 1 });
+followUpSchema.index({ escalationStage: 1, status: 1 });
 
 module.exports = mongoose.model('FollowUp', followUpSchema);

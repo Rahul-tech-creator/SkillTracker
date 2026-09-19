@@ -142,6 +142,9 @@ export const followUpService = {
   // Government Tracking Queue (Admin)
   getGovernmentQueue: (params) => api.get('/followups/government-tracking/queue', { params }),
   updateGovernmentStatus: (id, data) => api.patch(`/followups/government-tracking/${id}/status`, data),
+  // Assisted Queue & Call Logging
+  getAssistedQueue: (params) => api.get('/followups/assisted-queue', { params }),
+  logCall: (id, data) => api.post(`/followups/${id}/log-call`, data),
   // Configuration Settings (Admin)
   getSettings: () => api.get('/followups/settings'),
   updateSettings: (data) => api.put('/followups/settings', data),
@@ -152,6 +155,11 @@ export const outcomeService = {
   getMy: () => api.get('/outcomes/my'),
   getAll: (params) => api.get('/outcomes', { params }),
   getStats: () => api.get('/outcomes/stats'),
+  getVerification: (id) => api.get(`/outcomes/${id}/verification`),
+  verify: (id, data) => api.post(`/outcomes/${id}/verify`, data),
+  getDiscrepancies: () => api.get('/outcomes/discrepancies'),
+  getWageRetentionIntelligence: (params) => api.get('/outcomes/intelligence/wage-retention', { params }),
+  getRootCauses: (params) => api.get('/outcomes/intelligence/root-causes', { params }),
 };
 
 // --- Notification Endpoints ---
@@ -168,6 +176,10 @@ export const assessmentService = {
   getById: (id) => api.get(`/assessments/${id}`),
   publish: (id) => api.patch(`/assessments/${id}/publish`),
   start: (id) => api.post(`/assessments/${id}/start`),
+  answerCaseStudy: (id, data) => api.post(`/assessments/${id}/case-study/answer`, data),
+  completeCaseStudy: (id, data) => api.post(`/assessments/${id}/case-study/complete`, data),
+  answerAdaptive: (id, data) => api.post(`/assessments/${id}/adaptive/answer`, data),
+  retryAdaptive: (id, data) => api.post(`/assessments/${id}/adaptive/retry`, data),
   submit: (id, data) => api.post(`/assessments/${id}/submit`, data),
   getAttempts: (id) => api.get(`/assessments/${id}/attempts`),
 };
@@ -178,6 +190,9 @@ export const skillGapService = {
   getMy: () => api.get('/skill-gaps/my'),
   getByTrainee: (traineeId) => api.get(`/skill-gaps/trainee/${traineeId}`),
   getByCourse: (courseId) => api.get(`/skill-gaps/course/${courseId}`),
+  getMarketAlignment: (courseId) => api.get(`/skill-gaps/market-alignment/${courseId}`),
+  getSystemicGaps: () => api.get('/skill-gaps/systemic-gaps'),
+  getQuestionBank: (params) => api.get('/skill-gaps/question-bank', { params }),
 };
 
 // --- Remedial Action Endpoints ---
@@ -185,6 +200,9 @@ export const remedialActionService = {
   create: (data) => api.post('/remedial-actions', data),
   update: (id, data) => api.put(`/remedial-actions/${id}`, data),
   getAll: (params) => api.get('/remedial-actions', { params }),
+  getRecurringGaps: (params) => api.get('/remedial-actions/recurring-gaps', { params }),
+  reassess: (id, data) => api.post(`/remedial-actions/${id}/reassess`, data),
+  getComparison: () => api.get('/remedial-actions/intelligence/comparison'),
 };
 
 // --- Provider Comparison Endpoints ---
@@ -213,6 +231,20 @@ export const fundingSchemeService = {
 // --- Data Quality Endpoints ---
 export const dataQualityService = {
   get: () => api.get('/data-quality'),
+};
+
+// --- District & Demographic Analytics & Policy Intelligence ---
+export const analyticsService = {
+  getDistrictAnalytics: (params) => api.get('/analytics/districts', { params }),
+  getDemographics: (params) => api.get('/analytics/demographics', { params }),
+  getProviderScorecard: (providerId) => api.get(`/analytics/providers/${providerId}/scorecard`),
+  getPolicyRecommendations: (params) => api.get('/analytics/policy-recommendations', { params }),
+  updatePolicyStatus: (id, data) => api.patch(`/analytics/policy-recommendations/${id}/status`, data),
+};
+
+// --- Global Search Endpoints ---
+export const searchService = {
+  globalSearch: (q) => api.get('/search', { params: { q } }),
 };
 
 export default api;

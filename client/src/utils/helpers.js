@@ -83,3 +83,9 @@ export const truncateText = (text, maxLength = 60) => {
   if (text.length <= maxLength) return text;
   return `${text.substring(0, maxLength)}...`;
 };
+
+export const formatCurrency = (amount) => {
+  if (amount == null || isNaN(amount)) return '—';
+  return '₹' + Number(amount).toLocaleString('en-IN');
+};
+

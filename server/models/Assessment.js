@@ -86,7 +86,7 @@ const assessmentSchema = new mongoose.Schema(
     questionsPerSkill: {
       type: Number,
       default: 5,
-      min: 3,
+      min: 1,
     },
     totalQuestions: {
       type: Number,
@@ -111,6 +111,12 @@ const assessmentSchema = new mongoose.Schema(
       enum: ['DRAFT', 'PUBLISHED', 'ARCHIVED'],
       default: 'DRAFT',
     },
+    // Phase 1: Predefined Case Study scenario and fixed MCQs
+    caseStudy: {
+      title: { type: String, trim: true, default: '' },
+      scenario: { type: String, trim: true, default: '' },
+    },
+    caseStudyQuestions: [questionSchema],
     questions: [questionSchema],
     gapThresholds: {
       strong: { type: Number, default: 80 },

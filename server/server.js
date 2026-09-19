@@ -64,7 +64,7 @@ app.use('/api/search', require('./routes/search'));
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Skilling Tracker API is running' });
+  res.json({ status: 'ok' });
 });
 
 // 404 handler

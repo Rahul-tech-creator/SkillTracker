@@ -72,6 +72,33 @@ export const Login = () => {
     setError('');
   };
 
+  const demoProfiles = [
+    {
+      label: 'Admin',
+      icon: <IconShield size={14} />,
+      username: 'admin',
+      password: 'admin123',
+      className: 'pill-admin',
+      title: 'System Administrator (National HQ)',
+    },
+    {
+      label: 'Provider',
+      icon: <IconBuilding size={14} />,
+      username: 'apex_provider',
+      password: 'provider123',
+      className: 'pill-provider',
+      title: 'Apex Institute Provider',
+    },
+    {
+      label: 'Trainee',
+      icon: <IconUsers size={14} />,
+      username: 'rahul',
+      password: 'trainee123',
+      className: 'pill-trainee',
+      title: 'Rahul Sharma (MERN Cohort Alpha)',
+    },
+  ];
+
   return (
     <div className="login-page">
       <div className="login-container">
@@ -158,31 +185,48 @@ export const Login = () => {
 
           <div className="quick-access-box">
             <span className="quick-access-title">Demo Pre-Seeded Profiles</span>
+            <p style={{ margin: '0 0 0.35rem 0', fontSize: '0.78rem', color: 'var(--text-muted, #667085)', textAlign: 'center', fontWeight: 500 }}>
+              Click a demo profile to login
+            </p>
             <div className="quick-access-pills">
-              <button
-                type="button"
-                className="quick-pill pill-admin"
-                onClick={() => handleQuickFill('admin', 'admin123')}
-                title="System Administrator (National HQ)"
-              >
-                <IconShield size={14} /> Admin
-              </button>
-              <button
-                type="button"
-                className="quick-pill pill-provider"
-                onClick={() => handleQuickFill('apex_provider', 'provider123')}
-                title="Apex Institute Provider"
-              >
-                <IconBuilding size={14} /> Provider
-              </button>
-              <button
-                type="button"
-                className="quick-pill pill-trainee"
-                onClick={() => handleQuickFill('rahul', 'trainee123')}
-                title="Rahul Sharma (MERN Cohort Alpha)"
-              >
-                <IconUsers size={14} /> Trainee
-              </button>
+              {demoProfiles.map((profile) => (
+                <button
+                  key={profile.label}
+                  type="button"
+                  className={`quick-pill ${profile.className}`}
+                  onClick={() => handleQuickFill(profile.username, profile.password)}
+                  title={profile.title}
+                >
+                  {profile.icon} {profile.label}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ marginTop: '0.9rem', paddingTop: '0.75rem', borderTop: '1px dashed var(--border-subtle, #E4E1DA)' }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted, #667085)', marginBottom: '0.45rem', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Demo Credentials
+              </div>
+              <div style={{ display: 'grid', gap: '0.4rem', fontSize: '0.75rem' }}>
+                {demoProfiles.map((profile) => (
+                  <div
+                    key={`${profile.label}-credentials`}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      background: 'var(--bg-surface-secondary, #F2F1EB)',
+                      padding: '0.4rem 0.65rem',
+                      borderRadius: 'var(--radius-xs, 6px)',
+                      border: '1px solid var(--border-subtle, #E4E1DA)',
+                    }}
+                  >
+                    <span style={{ fontWeight: 600, color: 'var(--text-main, #1F2933)' }}>{profile.label}</span>
+                    <span style={{ color: 'var(--text-muted, #667085)' }}>
+                      Username: <code style={{ color: 'var(--primary-dark, #0F3F21)', fontWeight: 600 }}>{profile.username}</code> &nbsp;|&nbsp; Password: <code style={{ color: 'var(--primary-dark, #0F3F21)', fontWeight: 600 }}>{profile.password}</code>
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>

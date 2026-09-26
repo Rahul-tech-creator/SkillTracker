@@ -184,9 +184,8 @@ export const Login = () => {
           </form>
 
           <div className="quick-access-box">
-            <span className="quick-access-title">Demo Pre-Seeded Profiles</span>
             <p style={{ margin: '0 0 0.35rem 0', fontSize: '0.78rem', color: 'var(--text-muted, #667085)', textAlign: 'center', fontWeight: 500 }}>
-              Click a demo profile to login
+              Click the buttons below to login
             </p>
             <div className="quick-access-pills">
               {demoProfiles.map((profile) => (
